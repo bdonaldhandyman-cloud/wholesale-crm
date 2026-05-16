@@ -467,9 +467,48 @@ window.gmInit = function() {
   autocomplete.addListener('place_changed', () => {
     const place = autocomplete.getPlace();
     if (place.geometry) {
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+      const addr = place.formatted_address || document.getElementById('map-search').value;
+
+      // Check if this address already exists in our properties
+      const existing = props.find(p => p.address.toLowerCase() === addr.toLowerCase());
+      if (existing) {
+        // Just jump to it
+        map.panTo(place.geometry.location);
+        map.setZoom(16);
+        selectProp(existing.id);
+        document.getElementById('map-search').value = '';
+        document.getElementById('search-results').classList.remove('open');
+        return;
+      }
+
+      // New address — pan map, drop a temporary marker, open add modal
       map.panTo(place.geometry.location);
-      map.setZoom(15);
+      map.setZoom(16);
       document.getElementById('search-results').classList.remove('open');
+
+      // Drop a temporary "preview" marker with bounce animation
+      if (window._previewMarker) window._previewMarker.setMap(null);
+      window._previewMarker = new google.maps.Marker({
+        position: { lat, lng },
+        map,
+        animation: google.maps.Animation.BOUNCE,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#f0b429',
+          fillOpacity: 1,
+          strokeColor: '#fff',
+          strokeWeight: 2,
+        }
+      });
+      // Stop bouncing after 2 seconds
+      setTimeout(() => { if (window._previewMarker) window._previewMarker.setAnimation(null); }, 2000);
+
+      // Open add modal pre-filled
+      openAddModal(lat, lng, addr);
+      document.getElementById('map-search').value = '';
     }
   });
 
@@ -687,7 +726,7 @@ function openEditModal(id) {
   document.getElementById('modal').classList.add('open');
 }
 
-function closeModal() { document.getElementById('modal').classList.remove('open'); pendingLatLng=null; }
+function closeModal() { document.getElementById('modal').classList.remove('open'); pendingLatLng=null; if(window._previewMarker){window._previewMarker.setMap(null);window._previewMarker=null;} }
 
 function clearForm() {
   ['f-address','f-price','f-lat','f-lng','f-buyer-name','f-buyer-phone','f-buyer-email','f-buyer-company','f-notes'].forEach(id=>document.getElementById(id).value='');
