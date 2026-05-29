@@ -120,9 +120,9 @@
   .api-link{display:block;margin-top:12px;font-size:11px;color:var(--muted);}
   .api-link a{color:var(--gold);text-decoration:none;}
 
-  .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+  .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(5px);padding:16px;}
   .mo.open{display:flex;}
-  .modal{background:var(--bg-panel);border:1px solid var(--border);border-radius:13px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;padding:24px;}
+  .modal{background:var(--bg-panel);border:1px solid var(--border);border-radius:13px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:20px;margin:auto;}
   .modal::-webkit-scrollbar{width:3px;}
   .modal::-webkit-scrollbar-thumb{background:var(--border);}
   .mhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
@@ -139,6 +139,7 @@
   .fg textarea{resize:vertical;min-height:65px;}
   .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .frow3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  @media(max-width:480px){.frow{grid-template-columns:1fr;}.frow3{grid-template-columns:1fr 1fr;}}
   .mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;align-items:center;}
   .btn-del{background:rgba(224,92,46,0.12);border:1px solid rgba(224,92,46,0.25);color:var(--red);padding:8px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:auto;}
   .btn-cancel{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:7px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
@@ -170,9 +171,10 @@
   <div class="logo">WholesalePro</div>
   <div class="search-wrap">
     <span class="si">⌕</span>
-    <input id="map-search" type="text" placeholder="Search address or buyer…" autocomplete="off" oninput="onSearch()" onfocus="onSearch()" onblur="setTimeout(()=>closeSearch(),200)">
+    <input id="map-search" type="text" placeholder="Search address, buyer, or lat,lng…" autocomplete="off" oninput="onSearch()" onfocus="onSearch()" onblur="setTimeout(()=>closeSearch(),200)">
     <div class="search-results" id="search-results"></div>
   </div>
+  <button onclick="doSearch()" style="background:#e05c2e;color:#fff;border:none;padding:8px 14px;border-radius:7px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:12px;cursor:pointer;flex-shrink:0;">🔍 Search</button>
   <div class="stats">
     <div class="pill pill-active" id="pill-active" onclick="filterStatus('active')"><span id="cnt-active">0</span> Active</div>
     <div class="pill pill-pending" id="pill-pending" onclick="filterStatus('pending')"><span id="cnt-pending">0</span> Pending</div>
@@ -202,6 +204,15 @@
   <div id="dc"></div>
 </div>
 
+<div id="add-prompt" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:14px 18px;z-index:200;backdrop-filter:blur(12px);text-align:center;min-width:280px;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+  <div id="add-prompt-addr" style="font-size:12px;color:var(--muted);margin-bottom:10px;"></div>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <button onclick="closeAddPrompt()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);padding:7px 16px;border-radius:7px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;">Just View</button>
+    <button onclick="addPromptProperty()" style="background:var(--gold);color:#000;border:none;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">📍 Add Property</button>
+    <button onclick="addPromptBuyer()" style="background:var(--purple);color:#fff;border:none;padding:7px 16px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">👤 Add Buyer</button>
+  </div>
+</div>
+
 <div class="pin-banner" id="pin-banner" onclick="cancelPin()">Click map to place pin — tap here to cancel</div>
 
 <!-- PROPERTY MODAL -->
@@ -225,6 +236,7 @@
         <div class="fg"><label>Latitude</label><input id="fp-lat" type="number" step="any" placeholder="33.749"><span class="ch" id="fp-ch"></span></div>
         <div class="fg"><label>Longitude</label><input id="fp-lng" type="number" step="any" placeholder="-84.388"></div>
       </div>
+      <button onclick="jumpToCoords()" style="width:100%;background:rgba(240,180,41,0.1);border:1px solid rgba(240,180,41,0.3);color:var(--gold);padding:8px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;">📍 Jump to These Coordinates</button>
     </div>
     <div class="fsec"><div class="fsec-t">Notes</div><div class="fg"><textarea id="fp-notes" placeholder="Deal details, follow-ups, closing info…"></textarea></div></div>
     <div class="mfoot">
@@ -257,6 +269,7 @@
         <div class="fg"><label>Latitude</label><input id="fb-lat" type="number" step="any" placeholder="33.749"><span class="ch" id="fb-ch"></span></div>
         <div class="fg"><label>Longitude</label><input id="fb-lng" type="number" step="any" placeholder="-84.388"></div>
       </div>
+      <button onclick="jumpToBuyerCoords()" style="width:100%;background:var(--purple-light);border:1px solid rgba(155,89,182,0.3);color:var(--purple);padding:8px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;">📍 Jump to These Coordinates</button>
     </div>
     <div class="fsec">
       <div class="fsec-t">All-Star Score</div>
@@ -335,6 +348,8 @@ window.gmInit=function(){
   document.getElementById('map').style.background='#1d2033';
   geocoder=new google.maps.Geocoder();
   ac=new google.maps.places.Autocomplete(document.getElementById('map-search'),{types:['address']});
+  
+  // Prevent autocomplete from hijacking Enter key
   ac.addListener('place_changed',()=>{
     const pl=ac.getPlace();
     if(!pl.geometry)return;
@@ -345,11 +360,56 @@ window.gmInit=function(){
     const eb=buyers.find(b=>b.addr&&b.addr.toLowerCase()===addr.toLowerCase());
     if(eb){map.panTo({lat,lng});map.setZoom(16);sel(eb.id,'buyer');document.getElementById('map-search').value='';return;}
     map.panTo({lat,lng});map.setZoom(16);
-    prevPin(lat,lng);
-    openPM(lat,lng,addr);
     document.getElementById('map-search').value='';
     document.getElementById('search-results').classList.remove('open');
+    showAddPrompt(lat, lng, addr);
   });
+
+  // Handle Enter key - disable autocomplete first so Enter isn't hijacked
+  document.getElementById('map-search').addEventListener('keydown', e => {
+    if(e.key !== 'Enter') return;
+    e.preventDefault();
+    e.stopPropagation();
+    // Disable autocomplete dropdown temporarily
+    google.maps.event.trigger(ac, 'place_changed');
+    
+    const query = document.getElementById('map-search').value.trim();
+    if(!query) return;
+
+    // Check if query looks like coordinates (e.g. "44.0972, -121.1825")
+    const coordMatch = query.match(/^(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)$/);
+    if(coordMatch) {
+      const lat = parseFloat(coordMatch[1]);
+      const lng = parseFloat(coordMatch[2]);
+      if(!isNaN(lat) && !isNaN(lng)){
+        map.panTo({lat,lng}); map.setZoom(16);
+        document.getElementById('map-search').value='';
+        showAddPrompt(lat, lng, `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+      }
+      return;
+    }
+
+    // Check saved properties and buyers
+    const ep = props.find(p=>p.address.toLowerCase().includes(query.toLowerCase()));
+    if(ep && ep.lat && ep.lng){map.panTo({lat:ep.lat,lng:ep.lng});map.setZoom(16);sel(ep.id,'prop');document.getElementById('map-search').value='';return;}
+    const eb = buyers.find(b=>(b.name||'').toLowerCase().includes(query.toLowerCase())||(b.addr||'').toLowerCase().includes(query.toLowerCase()));
+    if(eb && eb.lat && eb.lng){map.panTo({lat:eb.lat,lng:eb.lng});map.setZoom(16);sel(eb.id,'buyer');document.getElementById('map-search').value='';return;}
+
+    // Geocode the typed address
+    geocoder.geocode({address:query},(results,status)=>{
+      if(status==='OK' && results[0]){
+        const lat=results[0].geometry.location.lat();
+        const lng=results[0].geometry.location.lng();
+        const addr=results[0].formatted_address;
+        map.panTo({lat,lng}); map.setZoom(16);
+        document.getElementById('map-search').value='';
+        document.getElementById('search-results').classList.remove('open');
+        showAddPrompt(lat, lng, addr);
+      } else {
+        alert('Address not found. Please try a different search.');
+      }
+    });
+  }, true); // Use capture phase to intercept before autocomplete
   map.addListener('click',e=>{
     if(!pinMode)return;
     const lat=e.latLng.lat(),lng=e.latLng.lng(),mode=pinMode;
@@ -636,8 +696,83 @@ async function delBuyer(){
   await save(BKEY,buyers);updateStats();renderDrawer();closeDetail();closeBM();
 }
 
+// MANUAL SEARCH FUNCTION - called by button or Enter key
+function doSearch(){
+  const query = document.getElementById('map-search').value.trim();
+  if(!query) return;
+
+  // Check if coordinates
+  const coordMatch = query.match(/^(-?\d+\.?\d*)[,\s]+(-?\d+\.?\d*)$/);
+  if(coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    if(!isNaN(lat) && !isNaN(lng)){
+      map.panTo({lat,lng}); map.setZoom(16);
+      document.getElementById('map-search').value='';
+      showAddPrompt(lat, lng, `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+    }
+    return;
+  }
+
+  // Check saved properties and buyers
+  const ep = props.find(p=>p.address.toLowerCase().includes(query.toLowerCase()));
+  if(ep && ep.lat && ep.lng){map.panTo({lat:ep.lat,lng:ep.lng});map.setZoom(16);sel(ep.id,'prop');document.getElementById('map-search').value='';return;}
+  const eb = buyers.find(b=>(b.name||'').toLowerCase().includes(query.toLowerCase())||(b.addr||'').toLowerCase().includes(query.toLowerCase()));
+  if(eb && eb.lat && eb.lng){map.panTo({lat:eb.lat,lng:eb.lng});map.setZoom(16);sel(eb.id,'buyer');document.getElementById('map-search').value='';return;}
+
+  // Geocode address
+  geocoder.geocode({address:query},(results,status)=>{
+    if(status==='OK' && results[0]){
+      const lat=results[0].geometry.location.lat();
+      const lng=results[0].geometry.location.lng();
+      const addr=results[0].formatted_address;
+      map.panTo({lat,lng}); map.setZoom(16);
+      document.getElementById('map-search').value='';
+      document.getElementById('search-results').classList.remove('open');
+      showAddPrompt(lat, lng, addr);
+    } else {
+      alert('Address not found. Please try a different search.');
+    }
+  });
+}
+
+// OPTIONAL ADD PROMPT
+let _promptLat=null,_promptLng=null,_promptAddr='';
+function showAddPrompt(lat,lng,addr){
+  _promptLat=lat; _promptLng=lng; _promptAddr=addr;
+  document.getElementById('add-prompt-addr').textContent=addr||`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  document.getElementById('add-prompt').style.display='block';
+  // Auto-hide after 8 seconds
+  setTimeout(()=>closeAddPrompt(),8000);
+}
+function closeAddPrompt(){document.getElementById('add-prompt').style.display='none';}
+function addPromptProperty(){closeAddPrompt();prevPin(_promptLat,_promptLng);openPM(_promptLat,_promptLng,_promptAddr);}
+function addPromptBuyer(){closeAddPrompt();openBM(_promptLat,_promptLng,_promptAddr);}
+
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
-document.getElementById('pm').addEventListener('click',e=>{if(e.target===document.getElementById('pm'))closePM();});
+
+function jumpToCoords(){
+  const lat=parseFloat(document.getElementById('fp-lat').value);
+  const lng=parseFloat(document.getElementById('fp-lng').value);
+  if(!lat||!lng){alert('Please enter both latitude and longitude first.');return;}
+  if(!map){alert('Map not loaded yet.');return;}
+  closePM();
+  map.panTo({lat,lng}); map.setZoom(16);
+  prevPin(lat,lng);
+  openPM(lat,lng,document.getElementById('fp-addr').value||'');
+  document.getElementById('fp-lat').value=lat;
+  document.getElementById('fp-lng').value=lng;
+  document.getElementById('fp-ch').textContent=`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}
+
+function jumpToBuyerCoords(){
+  const lat=parseFloat(document.getElementById('fb-lat').value);
+  const lng=parseFloat(document.getElementById('fb-lng').value);
+  if(!lat||!lng){alert('Please enter both latitude and longitude first.');return;}
+  if(!map){alert('Map not loaded yet.');return;}
+  map.panTo({lat,lng}); map.setZoom(16);
+  document.getElementById('fb-ch').textContent=`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}document.getElementById('pm').addEventListener('click',e=>{if(e.target===document.getElementById('pm'))closePM();});
 document.getElementById('bm').addEventListener('click',e=>{if(e.target===document.getElementById('bm'))closeBM();});
 
 const darkStyle=[
